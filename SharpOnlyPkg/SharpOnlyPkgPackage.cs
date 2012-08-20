@@ -73,8 +73,6 @@ namespace BoydYang.SharpBuildPkg
 
         private object CreateService(IServiceContainer container, Type serviceType)
         {
-            Debug.WriteLine(@"CreateService");
-
             if (typeof(MSBuildTaskService) == serviceType)
                 return new MSBuildTaskService(this);
             else if (typeof(SharpBuildService) == serviceType)
@@ -92,7 +90,6 @@ namespace BoydYang.SharpBuildPkg
         /// </summary>
         protected override void Initialize()
         {
-            Trace.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
             base.Initialize();
         }
 
@@ -250,7 +247,9 @@ namespace BoydYang.SharpBuildPkg
 
         private void MenuItemCallback_Stop(object sender, EventArgs e)
         {
-
+            ISharpBuildService buildService = this.GetService(typeof(SharpBuildService)) as ISharpBuildService;
+            if (buildService.IsRunning)
+                buildService.StopBuild();
         }
 
         private void MenuItemCallback_Deploy(object sender, EventArgs e)

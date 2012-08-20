@@ -20,7 +20,7 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
 
     [Guid("FB2C253F-6D02-474F-A25A-4C0E8779E9FB")]
     [ComVisible(true)]
-    public class MSBuildTaskService : ServiceProviderBase, IMSBuildTaskServiceProvider
+    public class MSBuildTaskService : ServiceProviderBase, IMSBuildTaskServiceProvider, IDisposable
     {
         private SharpBuildTaskProvider _taskProvider;
 
@@ -77,6 +77,15 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
 
         void errorTask_Navigate(object sender, EventArgs e)
         {
+        }
+
+        public void Dispose()
+        {
+            if (_taskProvider != null)
+            {
+                _taskProvider.Dispose();
+                _taskProvider = null;
+            }
         }
     }
 }

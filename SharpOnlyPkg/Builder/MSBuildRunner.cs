@@ -22,7 +22,7 @@ using BoydYang.SharpBuildLogger.Constant;
 
 namespace BoydYang.SharpBuildPkg.BuildRunner
 {
-	public class MSBuildRunner
+	public class MSBuildRunner : IDisposable
 	{
         public delegate void BuildStartEventHandler(object sender, SharpBuildStartEvent e);
         public delegate void BuildFinishedEventHandler(object sender, SharpBuildFinishedEvent e);
@@ -263,8 +263,7 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 		{
 			var builder = new StringBuilder();
 			builder.Append(BuildFileName);
-			builder.Append(" ");
-			builder.Append(" /v:q "); // verbosity: minimal
+			builder.Append(@" /v:q "); // verbosity: minimal
 
             // Only apply below property while building project.
             if (BuildProject != null)
@@ -287,7 +286,7 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
             Uri assemblyUri = new Uri(assembly.GetName().CodeBase);
             var path = assemblyUri.LocalPath;
             builder.Append(" /flp:Verbosity=minimal ");
-            builder.AppendFormat(" /logger:{0},{1};{2} ", typeof(MSBuildLogger).FullName, path, _pipename);
+            builder.AppendFormat(" /logger:{0},\"{1}\";{2} ", typeof(MSBuildLogger).FullName, path, _pipename);
             return builder.ToString();
 		}
 
@@ -319,5 +318,14 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 				BuildWindow.OutputString(ex.Message);
 			}
 		}
-	}
+
+        public void Dispose()
+        {
+            if (serverPipe != null)
+            {
+                serverPipe.Close();
+                serverPipe = null;
+            }
+        }
+    }
 }

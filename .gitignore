@@ -2,3 +2,7 @@
 /SharpBuild.suo
 /SharpOnlyPkg/obj
 /SharpOnlyPkg/bin
+/SharpBuildLogger/*.user
+/SharpBuildLogger/obj
+/SharpBuildLogger/bin/Debug
+/SharpBuildLogger/bin/Release

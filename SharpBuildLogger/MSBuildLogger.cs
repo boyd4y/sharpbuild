@@ -69,6 +69,7 @@ namespace BoydYang.SharpBuildLogger.Loggers
             {
                 sw.WriteLine(msg);
                 sw.Flush();
+                Console.WriteLine(msg);
             }
             else
                 Console.WriteLine(msg);
@@ -118,12 +119,12 @@ namespace BoydYang.SharpBuildLogger.Loggers
 
         void eventSource_ProjectStarted(object sender, ProjectStartedEventArgs e)
         {
-            TraceLog(string.Format(@"*-------- Project Started: {0} --------*", projectFileName));
+            //TraceLog(string.Format(@"*-------- Project Started: {0} --------*", projectFileName));
         }
 
         void eventSource_ProjectFinished(object sender, ProjectFinishedEventArgs e)
         {
-            TraceLog(string.Format(@"*======== Project Finished: {0} {1} ========*", projectFileName, e.Succeeded));
+            //TraceLog(string.Format(@"*======== Project Finished: {0} {1} ========*", projectFileName, e.Succeeded));
         }
 
         void eventSource_TargetStarted(object sender, TargetStartedEventArgs e)

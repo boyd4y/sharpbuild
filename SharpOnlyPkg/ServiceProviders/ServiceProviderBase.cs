@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio;
+using System.Runtime.InteropServices;
 
 namespace BoydYang.SharpBuildPkg.ServiceProviders
 {
+    [ComVisible(true)]
     public class ServiceProviderBase
     {
         protected IServiceProvider serviceProvider;

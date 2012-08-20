@@ -1,6 +1,0 @@
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Release\SharpBuildLogger.dll
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Release\SharpBuildLogger.pdb
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Release\Newtonsoft.Json.dll
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Release\ResolveAssemblyReference.cache
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Release\SharpBuildLogger.dll
-C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Release\SharpBuildLogger.pdb
