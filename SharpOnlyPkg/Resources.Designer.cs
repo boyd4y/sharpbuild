@@ -59,5 +59,23 @@ namespace BoydYang.SharpBuildPkg {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deploy folder.
+        /// </summary>
+        internal static string DeployFolder {
+            get {
+                return ResourceManager.GetString("DeployFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deploy folder list.
+        /// </summary>
+        internal static string DeployFolderList {
+            get {
+                return ResourceManager.GetString("DeployFolderList", resourceCulture);
+            }
+        }
     }
 }

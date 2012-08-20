@@ -1,0 +1,6 @@
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Debug\SharpBuildLogger.dll
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Debug\SharpBuildLogger.pdb
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Debug\SharpBuildLogger.dll
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\obj\Debug\SharpBuildLogger.pdb
+C:\Users\yajun\Documents\work\sharpbuild\SharpBuildLogger\bin\Debug\Newtonsoft.Json.dll

@@ -5,19 +5,27 @@ using System.Text;
 using EnvDTE;
 using System.IO;
 using Microsoft.VisualStudio.Shell.Interop;
+using System.Runtime.InteropServices;
 
 namespace BoydYang.SharpBuildPkg.ServiceProviders
 {
-    interface DeployService 
+    [Guid("548F5A6E-49CB-40DA-8E61-ACAB9E625583")]
+    interface ISharpBuildDeployService 
     {
         void DeployProject(Project project);
         void DeploySolution(Solution sln);
+        void GetProjectTargetAssemblyPath(Project project, out string absoluteOutputPath, out string outputfilename);
     }
 
-    public class DeployServiceProvider : DeployService
+    [Guid("FAC90EB7-BCC8-41C2-B260-5B168B45A0A6")]
+    [ComVisible(true)]
+    public class SharpBuildDeployService : ServiceProviderBase, ISharpBuildDeployService
     {
         List<string> QuickDeployFolders = new List<string>();
-        public IVsOutputWindowPane BuildWindow { get; set; }
+        public SharpBuildDeployService(IServiceProvider sp)
+            : base(sp)
+        {
+        }
 
         public void UpdateSettings(List<string> folders)
         {
@@ -31,7 +39,8 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
 
         public void DeployProject(Project project)
         {
-            DeployProject(project, true);
+            if (QuickDeployFolders.Count > 0)
+                DeployProject(project, true);
         }
 
         private void DeployProject(Project project, bool log)
@@ -46,35 +55,35 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
             catch (Exception ee)
             {
                 if (log)
-                    BuildWindow.OutputString(string.Format("-------- Failed to locate targetdir for project {0} : Reason:{1}--------\r\n", project.Name, ee.Message));
+                    OutputPane.OutputString(string.Format("-------- Failed to locate targetdir for project {0} : Reason:{1}--------\r\n", project.Name, ee.Message));
                 return;
             }
 
             if (log)
-                BuildWindow.OutputString(string.Format("-------- Start to deploy project {0} --------\r\n", project.Name));
+                OutputPane.OutputString(string.Format("-------- Start to deploy project {0} --------\r\n", project.Name));
 
             foreach (var item in QuickDeployFolders)
             {
                 string targetpath = Path.Combine(item, file);
 
                 if (!File.Exists(path))
-                    BuildWindow.OutputString(string.Format("********* File {0} not exist *********\r\n", file));
+                    OutputPane.OutputString(string.Format("********* File {0} not exist *********\r\n", file));
                 else
                 {
                     try
                     {
                         File.Copy(path, targetpath, true);
-                        BuildWindow.OutputString(string.Format("********* Copy file {0} to {1} *********\r\n", file, item));
+                        OutputPane.OutputString(string.Format("********* Copy file {0} to {1} *********\r\n", file, item));
                     }
                     catch (Exception ee)
                     {
-                        BuildWindow.OutputString(string.Format("********* Failed Copy file {0} to {1} @{2} *********\r\n", file, item, ee.Message));
+                        OutputPane.OutputString(string.Format("********* Failed Copy file {0} to {1} @{2} *********\r\n", file, item, ee.Message));
                     }
                 }
             }
 
             if (log)
-                BuildWindow.OutputString(string.Format("-------- Complete to deploy project --------\r\n"));
+                OutputPane.OutputString(string.Format("-------- Complete to deploy project --------\r\n"));
         }
 
         private void DeploySolutionFolder(ProjectItems items)
@@ -97,7 +106,12 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
 
         public void DeploySolution(Solution sln)
         {
-            BuildWindow.OutputString(string.Format("-------- Start to deploy solution --------\r\n"));
+            if (QuickDeployFolders.Count == 0)
+            {
+                return;
+            }
+
+            OutputPane.OutputString(string.Format("-------- Start to deploy solution --------\r\n"));
 
             foreach (Project item in sln.Projects)
             {
@@ -110,10 +124,10 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
                 }
             }
 
-            BuildWindow.OutputString(string.Format("-------- Complete to deploy solution --------\r\n"));
+            OutputPane.OutputString(string.Format("-------- Complete to deploy solution --------\r\n"));
         }
 
-        private void GetProjectTargetAssemblyPath(Project project, out string absoluteOutputPath, out string outputfilename)
+        public void GetProjectTargetAssemblyPath(Project project, out string absoluteOutputPath, out string outputfilename)
         {
             string outpath = project.ConfigurationManager.ActiveConfiguration.Properties.Item("OutputPath").Value.ToString();
             outputfilename = project.Properties.Item("OutputFileName").Value.ToString();

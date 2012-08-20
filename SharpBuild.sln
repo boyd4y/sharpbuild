@@ -3,6 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpBuildPkg", "SharpOnlyPkg\SharpBuildPkg.csproj", "{71ADAA5A-FEF4-49BB-990A-7343781D615B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5647D5BB-4B5C-434F-BC2E-21714D82F756}"
+	ProjectSection(SolutionItems) = preProject
+		Revisions.txt = Revisions.txt
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpBuildLogger", "SharpBuildLogger\SharpBuildLogger.csproj", "{92D05ED7-149B-45BB-A588-0B432D5A47A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +34,18 @@ Global
 		{71ADAA5A-FEF4-49BB-990A-7343781D615B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{71ADAA5A-FEF4-49BB-990A-7343781D615B}.Release|Win32.ActiveCfg = Release|Any CPU
 		{71ADAA5A-FEF4-49BB-990A-7343781D615B}.Release|x86.ActiveCfg = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|Win32.ActiveCfg = Release|Any CPU
+		{92D05ED7-149B-45BB-A588-0B432D5A47A5}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

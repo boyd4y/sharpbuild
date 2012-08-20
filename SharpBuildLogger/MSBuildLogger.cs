@@ -7,12 +7,12 @@ using Microsoft.Build.Framework;
 using System.IO.Pipes;
 using System.IO;
 using System.Diagnostics;
+using BoydYang.SharpBuildLogger.Events;
 
-namespace BoydYang.SharpBuildPkg.Loggers
+namespace BoydYang.SharpBuildLogger.Loggers
 {
     public class MSBuildLogger : Logger
     {
-        private static string NAME = "sharpbuild";
         private NamedPipeClientStream client = null;
         private StreamWriter sw = null;
         private string projectFileName = string.Empty;
@@ -28,25 +28,29 @@ namespace BoydYang.SharpBuildPkg.Loggers
             eventSource.ProjectFinished += new ProjectFinishedEventHandler(eventSource_ProjectFinished);
             eventSource.BuildStarted += new BuildStartedEventHandler(eventSource_BuildStarted);
             eventSource.BuildFinished += new BuildFinishedEventHandler(eventSource_BuildFinished);
+
             // Pipe setup....
             SetupPipe();
         }
 
         void eventSource_BuildFinished(object sender, BuildFinishedEventArgs e)
         {
-            TraceLog(string.Format(@"*-------- Build Finished: {0} {1}--------*",e.Succeeded ? "Success" : "Falied",  e.Timestamp.ToLongTimeString()));
+            TraceAsJson(new SharpBuildFinishedEvent(e.Succeeded));
         }
 
         void eventSource_BuildStarted(object sender, BuildStartedEventArgs e)
         {
-            TraceLog(string.Format(@"*-------- Build Started: {0} --------*", e.Timestamp.ToLongTimeString()));
+            TraceAsJson(new SharpBuildStartEvent());
         }
 
         private bool SetupPipe()
         {
+            if (string.IsNullOrEmpty(Parameters))
+                return false;
+
             try
             {
-                client = new NamedPipeClientStream(".", NAME, PipeDirection.Out);
+                client = new NamedPipeClientStream(".", Parameters, PipeDirection.Out);
                 client.Connect();
                 sw = new StreamWriter(client);
             }
@@ -59,25 +63,53 @@ namespace BoydYang.SharpBuildPkg.Loggers
             return true;
         }
 
-        private void TraceLog(string msg)
+        private void WriteAndFlush(string msg)
         {
             if (sw != null)
             {
                 sw.WriteLine(msg);
                 sw.Flush();
             }
+            else
+                Console.WriteLine(msg);
+        }
+
+        private void TraceAsJson(SharpBuildEventBase eventBase)
+        {
+            try
+            {
+                string buffer = Newtonsoft.Json.JsonConvert.SerializeObject(new SharpBuildEventWrapper(eventBase));
+                WriteAndFlush(buffer);
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    SharpBuildEventWrapper logevt = new SharpBuildEventWrapper(new SharpBuildInternalErrorEvent(e.Message));
+                    string buffer = Newtonsoft.Json.JsonConvert.SerializeObject(logevt);
+                    WriteAndFlush(buffer);
+                }
+                catch (Exception ee)
+                {
+                    WriteAndFlush(ee.Message);
+                }
+            }
+        }
+
+        private void TraceLog(string msg)
+        {
+            TraceAsJson(new SharpBuildLogEvent(msg));
         }
 
         void eventSource_WarningRaised(object sender, BuildWarningEventArgs e)
         {
-            string msg = string.Format(@"{0}({1},{2}): warning {3}: {4}", e.File, e.LineNumber, e.ColumnNumber, e.Code, e.Message);
-            TraceLog(msg);
+            TraceAsJson(new SharpBuildWarningEvent(e));
+
         }
 
         void eventSource_ErrorRaised(object sender, BuildErrorEventArgs e)
         {
-            string msg = string.Format(@"{0}({1},{2}): error {3}: {4}", e.File, e.LineNumber, e.ColumnNumber, e.Code, e.Message);
-            TraceLog(msg);
+            TraceAsJson(new SharpBuildErrorEvent(e));
         }
 
         void eventSource_MessageRaised(object sender, BuildMessageEventArgs e)
@@ -86,13 +118,12 @@ namespace BoydYang.SharpBuildPkg.Loggers
 
         void eventSource_ProjectStarted(object sender, ProjectStartedEventArgs e)
         {
-            //projectFileName = System.IO.Path.GetFileName(e.ProjectFile);
-            //TraceLog(string.Format(@"*-------- Project Started: {0} --------*", projectFileName));
+            TraceLog(string.Format(@"*-------- Project Started: {0} --------*", projectFileName));
         }
 
         void eventSource_ProjectFinished(object sender, ProjectFinishedEventArgs e)
         {
-            //TraceLog(string.Format(@"*======== Project Finished: {0} {1} ========*", projectFileName, e.Succeeded));
+            TraceLog(string.Format(@"*======== Project Finished: {0} {1} ========*", projectFileName, e.Succeeded));
         }
 
         void eventSource_TargetStarted(object sender, TargetStartedEventArgs e)

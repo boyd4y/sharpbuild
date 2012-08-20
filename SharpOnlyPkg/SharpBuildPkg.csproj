@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <RunRegRiched>true</RunRegRiched>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,6 +32,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <RunCodeAnalysis>true</RunCodeAnalysis>
+    <RunRegRiched>true</RunRegRiched>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Build.Framework" />
@@ -47,6 +49,9 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="Microsoft.VisualStudio.Shell.Immutable.10.0" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\Reference\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -114,10 +119,13 @@
   <ItemGroup>
     <Compile Include="Builder\MSBuildRunner.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="Loggers\MSBuildLogger.cs" />
+    <Compile Include="Options\DeployFolder.cs" />
+    <Compile Include="Options\DeployFolderCollection.cs" />
+    <Compile Include="Options\DeployFolderCollectionPropertyDescriptor.cs" />
     <Compile Include="Options\OptionsPageGrid.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Options\TypeConverter.cs" />
     <Compile Include="Packages\ProjectPackageBase.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -126,10 +134,14 @@
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="ServiceProviders\DeployServiceProvider.cs" />
+    <Compile Include="ServiceProviders\MSBuildTaskProvider.cs" />
+    <Compile Include="ServiceProviders\ServiceProviderBase.cs" />
+    <Compile Include="ServiceProviders\SharpBuildServiceProvider.cs" />
     <Compile Include="SharpOnlyPkgPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PkgCmdID.cs" />
     <Compile Include="SingletonUtility.cs" />
+    <Compile Include="TaskProviders\SharpBuildTaskProvider.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
@@ -160,13 +172,23 @@
     <None Include="Resources\Images_32bit.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="build.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <Content Include="Resources\Package.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Communication\" />
+    <ProjectReference Include="..\SharpBuildLogger\SharpBuildLogger.csproj">
+      <Project>{92D05ED7-149B-45BB-A588-0B432D5A47A5}</Project>
+      <Name>SharpBuildLogger</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <UseCodebase>true</UseCodebase>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>build.ico</ApplicationIcon>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v10.0\VSSDK\Microsoft.VsSDK.targets" />

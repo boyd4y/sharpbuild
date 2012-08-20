@@ -22,28 +22,26 @@ namespace BoydYang.SharpBuildPkg.Options
         public bool DisableCA { get; set; }
 
         [Category("General")]
+        [Description("Disable Optimize")]
+        public bool DisableOptimize { get; set; }
+
+        [Category("General")]
         [Description(@"MSBuild.exe path, normally in c:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe")]
         [EditorAttribute(typeof(FileNameEditor), typeof(UITypeEditor))]
         public string MSBuildPath { get; set; }
 
         [Category("General")]
-        [Description("Deploy folder 1")]
-        [EditorAttribute(typeof(FolderNameEditor), typeof(UITypeEditor))]
-        public string DeployTarget1 { get; set; }
-
-        [Category("General")]
-        [Description("Deploy folder 2")]
-        [EditorAttribute(typeof(FolderNameEditor), typeof(UITypeEditor))]
-        public string DeployTarget2 { get; set; }
-
-        [Category("General")]
-        [Description("Deploy folder 3")]
-        [EditorAttribute(typeof(FolderNameEditor), typeof(UITypeEditor))]
-        public string DeployTarget3 { get; set; }
+        [Description("Deploy folders")]
+        [TypeConverter(typeof(DeployFolderCollectionConverter))]
+        public DeployFolderCollection DeployFolders { get; set; }
 
         public OptionPageGrid()
         {
             MSBuildPath = @"c:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe";
+            DeployFolders = new DeployFolderCollection();
+            AutoDeploy = true;
+            DisableCA = true;
+            DisableOptimize = true;
         }
     }
 }

@@ -41,11 +41,11 @@ namespace BoydYang.SharpBuildPkg
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [Guid(GuidList.guidSharpBuildPkgPkgString)]
     [ProvideOptionPage(typeof(OptionPageGrid), "Sharp Build", "General", 0, 0, true)]
+    [ProvideService(typeof(MSBuildTaskService))]
+    [ProvideService(typeof(SharpBuildService))]
+    [ProvideService(typeof(SharpBuildDeployService))]
     public sealed class SharpOnlyPkgPackage : Package, IOleCommandTarget, Microsoft.VisualStudio.OLE.Interop.IServiceProvider
     {
-        private System.Collections.Generic.Dictionary<Project, MSBuildRunner> builderTable = new System.Collections.Generic.Dictionary<Project, MSBuildRunner>();
-        private MSBuildRunner _previousRunner = null;
-
         /// <summary>
         /// Default constructor of the package.
         /// Inside this method you can place any initialization code that does not require 
@@ -56,11 +56,35 @@ namespace BoydYang.SharpBuildPkg
         public SharpOnlyPkgPackage()
         {
             Trace.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", this.ToString()));
+
+            // Init service...
+            IServiceContainer serviceContainer = this as IServiceContainer;
+            ServiceCreatorCallback callback =
+               new ServiceCreatorCallback(CreateService);
+
+            serviceContainer.AddService(typeof(MSBuildTaskService), callback, true);
+            serviceContainer.AddService(typeof(SharpBuildService), callback, true);
+            serviceContainer.AddService(typeof(SharpBuildDeployService), callback, true);
         }
 
         /////////////////////////////////////////////////////////////////////////////
         // Overriden Package Implementation
         #region Package Members
+
+        private object CreateService(IServiceContainer container, Type serviceType)
+        {
+            Debug.WriteLine(@"CreateService");
+
+            if (typeof(MSBuildTaskService) == serviceType)
+                return new MSBuildTaskService(this);
+            else if (typeof(SharpBuildService) == serviceType)
+                return new SharpBuildService(this);
+            else if (typeof(SharpBuildDeployService) == serviceType)
+                return new SharpBuildDeployService(this);
+
+            return null;
+        }
+
 
         /// <summary>
         /// Initialization of the package; this method is called right after the package is sited, so this is the place
@@ -84,6 +108,10 @@ namespace BoydYang.SharpBuildPkg
 
                     case PkgCmdIDList.cmdidQuickDeploy:
                         MenuItemCallback_Deploy(this, null);
+                        break;
+
+                    case PkgCmdIDList.cmdidQuickStopBuild:
+                        MenuItemCallback_Stop(this, null);
                         break;
                     default:
                         break;
@@ -141,47 +169,59 @@ namespace BoydYang.SharpBuildPkg
             return page.DisableCA;
         }
 
+        private bool GetDisableOptimize()
+        {
+            OptionPageGrid page =
+                (OptionPageGrid)GetDialogPage(typeof(OptionPageGrid));
+            return page.DisableOptimize;
+        }
+
         private List<string> GetFolders()
         {
             List<string> folders = new List<string>();
 
             OptionPageGrid page =
                 (OptionPageGrid)GetDialogPage(typeof(OptionPageGrid));
-            if (!string.IsNullOrEmpty(page.DeployTarget1))
-                folders.Add(page.DeployTarget1);
-            if (!string.IsNullOrEmpty(page.DeployTarget2))
-                folders.Add(page.DeployTarget2);
-            if (!string.IsNullOrEmpty(page.DeployTarget3))
-                folders.Add(page.DeployTarget3);
+
+            foreach (var item in page.DeployFolders)
+            {
+                DeployFolder folder = item as DeployFolder;
+                if (folder != null && folder.Enabled)
+                {
+                    folders.Add(folder.Path);
+                }
+            }
 
             return folders;
         }
 
         private void MenuItemCallback_Build(object sender, EventArgs e)
         {
-            if (_previousRunner != null && _previousRunner.IsRunning)
-                return;
+            var buildwnd = GetOutputPane(VSConstants.BuildOutput, "Build");
 
+            ISharpBuildService buildService = this.GetService(typeof(SharpBuildService)) as ISharpBuildService;
+
+            if (buildService.IsRunning)
+            {
+                buildwnd.OutputString(@"Build is busy....");
+                return;
+            }
+
+            // Save all...
             DTE dte = (DTE)this.GetService(typeof(SDTE));
             dte.ExecuteCommand("File.SaveAll", String.Empty);
 
-            var buildwnd = GetOutputPane(VSConstants.BuildOutput, "Build");
             // Update settings...
-            Singleton<DeployServiceProvider>.Instance.UpdateSettings(GetFolders());
-            Singleton<DeployServiceProvider>.Instance.BuildWindow = buildwnd;
-            buildwnd.Activate();
+            SharpBuildDeployService deployService = this.GetService(typeof(SharpBuildDeployService)) as SharpBuildDeployService;
+            deployService.UpdateSettings(GetFolders());
 
             Project activeProj = GetActiveProject();
             if (activeProj != null)
             {
                 try
                 {
-                    MSBuildRunner runner = new MSBuildRunner(this, GetMSBuildPath(), GetActiveProject().Name, activeProj.FullName, buildwnd);
-                    runner.Configuration = activeProj.ConfigurationManager.ActiveConfiguration.ConfigurationName;
-                    runner.AutoDeploy = GetAutoDeploy();
-                    runner.DisableCA = GetDisableCA();
-                    runner.BuildProject = activeProj;
-                    runner.Start();
+                    // build
+                    buildService.StartBuildProject(activeProj, GetMSBuildPath(), GetAutoDeploy(), GetDisableCA(), GetDisableOptimize());
                 }
                 catch (Exception ee)
                 {
@@ -191,7 +231,7 @@ namespace BoydYang.SharpBuildPkg
             else
             {
                 // Solution build....
-                var sln = GetSolution();
+                Solution sln = GetSolution();
                 if (sln.Projects.Count < 1)
                 {
                     buildwnd.OutputString(@"Empty solution, bypass!!");
@@ -199,13 +239,7 @@ namespace BoydYang.SharpBuildPkg
                 }
                 try
                 {
-                    MSBuildRunner runner = new MSBuildRunner(this, GetMSBuildPath(), "Solution", sln.FullName, buildwnd);
-                    runner.Configuration = sln.Projects.Item(1).ConfigurationManager.ActiveConfiguration.ConfigurationName;
-                    runner.AutoDeploy = GetAutoDeploy();
-                    runner.DisableCA = GetDisableCA();
-                    runner.BuildProject = null;
-                    runner.BuildSolution = sln;
-                    runner.Start();
+                    buildService.StartBuildSolution(sln, GetMSBuildPath(), GetAutoDeploy(), GetDisableCA(), GetDisableOptimize());
                 }
                 catch (Exception ee)
                 {
@@ -214,21 +248,21 @@ namespace BoydYang.SharpBuildPkg
             }
         }
 
+        private void MenuItemCallback_Stop(object sender, EventArgs e)
+        {
+
+        }
+
         private void MenuItemCallback_Deploy(object sender, EventArgs e)
         {
-            var buildwnd = GetOutputPane(VSConstants.BuildOutput, "Build");
-
             // Update settings...
-            Singleton<DeployServiceProvider>.Instance.UpdateSettings(GetFolders());
-            Singleton<DeployServiceProvider>.Instance.BuildWindow = buildwnd;
-
-            buildwnd.Activate();
-
+            SharpBuildDeployService srv = this.GetService(typeof(SharpBuildDeployService)) as SharpBuildDeployService;
+            srv.UpdateSettings(GetFolders());
             Project actProj = GetActiveProject();
             if (actProj == null)
-                Singleton<DeployServiceProvider>.Instance.DeploySolution(GetSolution());
+                srv.DeploySolution(GetSolution());
             else
-                Singleton<DeployServiceProvider>.Instance.DeployProject(actProj);
+                srv.DeployProject(actProj);
         }
     }
 }

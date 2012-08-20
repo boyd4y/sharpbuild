@@ -8,6 +8,7 @@ namespace BoydYang.SharpBuildPkg
     {
         public const uint cmdidQuickBuild = 0x100;
         public const uint cmdidQuickDeploy = 0x101;
-        public const uint cmdidQuickDeployProperty = 0x102;
+        public const uint cmdidQuickStopBuild = 0x102;
+        public const uint cmdidQuickDeployProperty = 0x103;
     };
 }

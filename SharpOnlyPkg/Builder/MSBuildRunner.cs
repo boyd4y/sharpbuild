@@ -12,20 +12,27 @@ using BoydYang.SharpBuildPkg.Options;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
-using BoydYang.SharpBuildPkg.Loggers;
 using System.ComponentModel;
 using System.IO.Pipes;
 using BoydYang.SharpBuildPkg.Util;
 using BoydYang.SharpBuildPkg.ServiceProviders;
+using BoydYang.SharpBuildLogger.Loggers;
+using BoydYang.SharpBuildLogger.Events;
+using BoydYang.SharpBuildLogger.Constant;
 
 namespace BoydYang.SharpBuildPkg.BuildRunner
 {
 	public class MSBuildRunner
 	{
+        public delegate void BuildStartEventHandler(object sender, SharpBuildStartEvent e);
+        public delegate void BuildFinishedEventHandler(object sender, SharpBuildFinishedEvent e);
+        public delegate void BuildErrorEventHandler(object sender, SharpBuildErrorEvent e);
+        public delegate void BuildWarningEventHandler(object sender, SharpBuildWarningEvent e);
+        public delegate void BuildInternalEventHandler(object sender, SharpBuildInternalErrorEvent e);
+
         private IServiceProvider Host { get; set; }
 		public string BuildFullFileName { get; set; }
         public IVsOutputWindowPane BuildWindow { get; set; }
-		public string LogFile { get; set; }
 		private Process _buildProcess;
 		private volatile bool _building;
         private string MSBUILD = string.Empty;
@@ -37,15 +44,15 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
         public Solution BuildSolution { get; set; }
         public bool AutoDeploy { get; set; }
         public bool DisableCA { get; set; }
+        public bool DisableOptimize { get; set; }
 
-        private string PIPENAME
-        {
-            get
-            {
-                return "sharpbuild";
-            }
-        }
+        private string _pipename { get; set; }
 
+        public event BuildErrorEventHandler OnBuildError;
+        public event BuildWarningEventHandler OnBuildWarning;
+        public event BuildInternalEventHandler OnBuildInternalError;
+        public event BuildStartEventHandler OnBuildStart;
+        public event BuildFinishedEventHandler OnBuildFinished;
         public bool IsRunning
         {
             get
@@ -60,13 +67,30 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 			BuildFullFileName = buildFullFileName;
             MSBUILD = msbuild;
             ProjectName = projectName;
-            BuildWindow = buildWnd; // host.GetOutputPane(VSConstants.BuildOutput, "Build");
+            BuildWindow = buildWnd;
+
+            _pipename = string.Format(@"_sharponly_{0}", buildFullFileName.GetHashCode().ToString());
 		}
+
+        public void Stop()
+        {
+            try
+            {
+                _buildProcess.Kill();
+                StopPipeListen();
+                _buildProcess.WaitForExit();
+                _building = false;
+            }
+            catch (Exception e)
+            {
+                BuildWindow.OutputString("Stop msbuild failed due to:  " + e.Message);
+            }
+        }
 
 		public void Start()
 		{
 			_building = true;
-			//BuildWindow.OutputString(LogFile + "(1,1): msbuild " + BuildArguments() + "\r\n");
+			BuildWindow.OutputString(BuildArguments() + "\r\n");
 			Trace.WriteLine("Starting build...");
             ThreadPool.QueueUserWorkItem(StartPipeListen);
             ThreadPool.QueueUserWorkItem(StartBuildProcess);
@@ -82,7 +106,7 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
         {
             try
             {
-                serverPipe = new NamedPipeServerStream(PIPENAME, PipeDirection.In);
+                serverPipe = new NamedPipeServerStream(_pipename, PipeDirection.In);
                 Trace.WriteLine("Waiting for connection...");
                 serverPipe.WaitForConnection();
                 Trace.WriteLine("Connection established...");
@@ -93,7 +117,85 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
                     {
                         string content = sr.ReadLine();
                         if (!string.IsNullOrEmpty(content))
-                            BuildWindow.OutputStringThreadSafe(content + "\r\n");
+                        {
+                            // Json des...
+                            try
+                            {
+                                SharpBuildEventWrapper eventWrapper = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildEventWrapper>(content);
+
+                                switch (eventWrapper.EventType)
+                                {
+                                    case SharpBuildEventType.Start:
+                                        {
+                                            SharpBuildStartEvent log = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildStartEvent>(eventWrapper.EmbeddedMessage);
+                                            string msg = string.Format("*-------- Build Started: {0} --------*\r\n", log.GeneratedTime.ToLongTimeString());
+                                            
+                                            BuildWindow.OutputStringThreadSafe(msg);
+
+                                            // report error...
+                                            if (OnBuildStart != null)
+                                                OnBuildStart(this, log);
+                                        }
+                                        break;
+                                    case SharpBuildEventType.ErrorLog:
+                                        {
+                                            SharpBuildErrorEvent log = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildErrorEvent>(eventWrapper.EmbeddedMessage);
+                                            string msg = string.Format("{0}({1},{2}): error {3}: {4}\r\n", log.File, log.LineNumber, log.ColumnNumber, log.Code, log.Message);
+                                            BuildWindow.OutputStringThreadSafe(msg);
+
+                                            // report error...
+                                            if (OnBuildError != null)
+                                                OnBuildError(this, log);
+                                        }
+                                        break;
+                                    case SharpBuildEventType.WarningLog:
+                                        {
+                                            SharpBuildWarningEvent log = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildWarningEvent>(eventWrapper.EmbeddedMessage);
+                                            string msg = string.Format("{0}({1},{2}): warning {3}: {4}", log.File, log.LineNumber, log.ColumnNumber, log.Code, log.Message);
+                                            BuildWindow.OutputStringThreadSafe(msg + "\r\n");
+
+                                            // report error...
+                                            if (OnBuildWarning != null)
+                                                OnBuildWarning(this, log);
+                                        }
+                                        break;
+                                    case SharpBuildEventType.Log:
+                                        {
+                                            SharpBuildLogEvent log = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildLogEvent>(eventWrapper.EmbeddedMessage);
+                                            BuildWindow.OutputStringThreadSafe(log.Message + "\r\n");
+                                        }
+                                        break;
+
+                                    case SharpBuildEventType.InternalError:
+                                        {
+                                            SharpBuildInternalErrorEvent error = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildInternalErrorEvent>(eventWrapper.EmbeddedMessage);
+                                            BuildWindow.OutputStringThreadSafe(error.Message + "\r\n");
+                                            if (OnBuildInternalError != null)
+                                                OnBuildInternalError(this, error);
+                                        }
+                                        break;
+
+                                    case SharpBuildEventType.Finished:
+                                        {
+                                            SharpBuildFinishedEvent finishedevnt = Newtonsoft.Json.JsonConvert.DeserializeObject<SharpBuildFinishedEvent>(eventWrapper.EmbeddedMessage);
+                                            string msg = string.Format("*-------- Build Finished: {0} {1}--------*\r\n", finishedevnt.Successed ? "Success" : "Falied", finishedevnt.GeneratedTime.ToLongTimeString());
+                                            BuildWindow.OutputStringThreadSafe(msg);
+
+                                            if (OnBuildFinished != null)
+                                                OnBuildFinished(this, finishedevnt);
+                                        }
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+                                
+                            }
+                            catch (Exception ee)
+                            {
+                                BuildWindow.OutputStringThreadSafe(string.Format("Failed to get pipe events, general issues {0} \r\n ", ee.Message));
+                            }
+                        }
                         System.Threading.Thread.Sleep(200);
                     }
                 }
@@ -101,6 +203,10 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
                 Debug.WriteLine("close pipe....");
                 serverPipe.Close();
                 _pipeStopper = false;
+            }
+            catch (Exception e)
+            {
+                BuildWindow.OutputString(@"Failed to setup msbuild due to:  " + e.Message);
             }
             finally
             {
@@ -134,18 +240,8 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 
         void _buildProcess_Exited(object sender, EventArgs e)
         {
-            _building = false;
-
             StopPipeListen();
-
-            // Trigger to deploy....
-            if (AutoDeploy)
-            {
-                if (BuildProject != null)
-                    Singleton<DeployServiceProvider>.Instance.DeployProject(BuildProject);
-                else
-                    Singleton<DeployServiceProvider>.Instance.DeploySolution(BuildSolution);
-            }
+            _building = false;
         }
 
 		private ProcessStartInfo GetProcessStartInfo()
@@ -169,16 +265,29 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 			builder.Append(BuildFileName);
 			builder.Append(" ");
 			builder.Append(" /v:q "); // verbosity: minimal
-            builder.Append(@"/p:BuildProjectReferences=false "); // skip project reference...
-            if (this.DisableCA)
-                builder.Append(@" /p:RunCodeAnalysis=false "); // skip project reference...
+
+            // Only apply below property while building project.
+            if (BuildProject != null)
+            {
+                builder.Append(@"/p:BuildProjectReferences=false "); // skip project reference...
+                if (this.DisableOptimize)
+                    builder.Append(@" /p:Optimize=false "); // skip project reference...
+                if (this.DisableCA)
+                    builder.Append(@" /p:RunCodeAnalysis=false "); // skip project reference...
+            }
+            else
+            {
+                // Build project only... refine output project targets file if needed...
+                // Change msbuild project file in fly to fix some criticl bugs...
+            }
+
             if (!string.IsNullOrEmpty(Configuration))
 			    builder.AppendFormat(" /property:Configuration=\"{0}\" ", Configuration); // verbosity: minimal
-			var assembly = typeof (MSBuildRunner).Assembly;
+            var assembly = typeof(MSBuildLogger).Assembly;
             Uri assemblyUri = new Uri(assembly.GetName().CodeBase);
             var path = assemblyUri.LocalPath;
             builder.Append(" /flp:Verbosity=minimal ");
-            builder.AppendFormat(" /logger:{0},{1} ", typeof(MSBuildLogger).FullName, path);
+            builder.AppendFormat(" /logger:{0},{1};{2} ", typeof(MSBuildLogger).FullName, path, _pipename);
             return builder.ToString();
 		}
 
