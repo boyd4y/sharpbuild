@@ -16,7 +16,16 @@ namespace BoydYang.SharpBuildPkg.Options
         private string _path = string.Empty;
         private bool _enabled = false;
 
-        public DeployFolder() { }
+        public DeployFolder() 
+            : this(string.Empty, false)
+        {
+        }
+
+        public DeployFolder(string folder, bool enabled)
+        {
+            this._path = folder;
+            this._enabled = enabled;
+        }
 
         [Category("Required")]
         [EditorAttribute(typeof(FolderNameEditor), typeof(UITypeEditor))]
