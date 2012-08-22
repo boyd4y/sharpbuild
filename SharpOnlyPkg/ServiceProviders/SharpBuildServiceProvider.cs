@@ -17,7 +17,7 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
         bool IsRunning { get; }
 
         void StartBuildSolution(Solution buildSolution, string msbuildPath, bool autoDeploy, bool disableCA, bool disableOptimize);
-        void StartBuildProject(Project buildProj, string msbuildPath, bool autoDeploy, bool disableCA, bool disableOptimize);
+        void StartBuildProject(Solution buildSolution, Project buildProj, string msbuildPath, bool autoDeploy, bool disableCA, bool disableOptimize);
 
         void StopBuild();
     }
@@ -66,7 +66,7 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
             __currentrunner.Start();
         }
 
-        public void StartBuildProject(Project buildProj, string msbuildPath, bool autoDeploy, bool disableCA, bool disableOptimize)
+        public void StartBuildProject(Solution buildSolution, Project buildProj, string msbuildPath, bool autoDeploy, bool disableCA, bool disableOptimize)
         {
             if (IsRunning)
             {
@@ -76,6 +76,7 @@ namespace BoydYang.SharpBuildPkg.ServiceProviders
 
             __currentrunner = new MSBuildRunner(this.serviceProvider, msbuildPath, buildProj.Name, buildProj.FullName, OutputPane);
             __currentrunner.Configuration = buildProj.ConfigurationManager.ActiveConfiguration.ConfigurationName;
+            __currentrunner.BuildSolution = buildSolution;
             __currentrunner.AutoDeploy = autoDeploy;
             __currentrunner.DisableCA = disableCA;
             __currentrunner.DisableOptimize = disableOptimize;

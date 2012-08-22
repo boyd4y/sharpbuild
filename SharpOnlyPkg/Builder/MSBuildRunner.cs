@@ -19,6 +19,7 @@ using BoydYang.SharpBuildPkg.ServiceProviders;
 using BoydYang.SharpBuildLogger.Loggers;
 using BoydYang.SharpBuildLogger.Events;
 using BoydYang.SharpBuildLogger.Constant;
+using BoydYang.SharpBuildPkg.Utility;
 
 namespace BoydYang.SharpBuildPkg.BuildRunner
 {
@@ -47,6 +48,7 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
         public bool DisableOptimize { get; set; }
 
         private string _pipename { get; set; }
+        private string _buildProjectShadowFile;
 
         public event BuildErrorEventHandler OnBuildError;
         public event BuildWarningEventHandler OnBuildWarning;
@@ -90,7 +92,6 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 		public void Start()
 		{
 			_building = true;
-			BuildWindow.OutputString(BuildArguments() + "\r\n");
 			Trace.WriteLine("Starting build...");
             ThreadPool.QueueUserWorkItem(StartPipeListen);
             ThreadPool.QueueUserWorkItem(StartBuildProcess);
@@ -217,6 +218,22 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 		{
             try
             {
+                // if build project....
+                if (BuildProject != null)
+                {
+                    // clone, and make a shadow copy of original project file....
+                    try
+                    {
+                        string fullname;
+                        Singleton<MSBuildProjectUtility>.Instance.GenerateNewProjectFile(this.Host, BuildProject, BuildSolution, out fullname);
+                        _buildProjectShadowFile = System.IO.Path.GetFileName(fullname);
+                    }
+                    catch (Exception ee)
+                    {
+                        BuildWindow.OutputString(ee.Message);
+                    }
+                }
+
                 // We are on a separate thread - read and marshal back to the UI!
                 // this will monitor, capture and re-print errors and warnings for your project
                 ProcessStartInfo processStartInfo = GetProcessStartInfo();
@@ -242,12 +259,15 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
         {
             StopPipeListen();
             _building = false;
+
+            if (BuildProject != null)
+                Singleton<MSBuildProjectUtility>.Instance.DeleteShadowProjectFile(BuildProject);
         }
 
 		private ProcessStartInfo GetProcessStartInfo()
 		{
             string args = BuildArguments();
-            Debug.WriteLine(args);
+            BuildWindow.OutputString(args + "\r\n");
 
             var processStartInfo = new ProcessStartInfo(MSBUILD)
 									{
@@ -262,7 +282,7 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
 		private string BuildArguments()
 		{
 			var builder = new StringBuilder();
-			builder.Append(BuildFileName);
+            builder.Append(string.IsNullOrEmpty(_buildProjectShadowFile) ? BuildFileName : _buildProjectShadowFile);
 			builder.Append(@" /v:q "); // verbosity: minimal
 
             // Only apply below property while building project.
@@ -289,6 +309,14 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
             builder.AppendFormat(" /logger:{0},\"{1}\";{2} ", typeof(MSBuildLogger).FullName, path, _pipename);
             return builder.ToString();
 		}
+
+        private string ShadowBuildFullFileName
+        {
+            get
+            {
+                return string.Format(@"{0}_{1}", Guid.NewGuid().ToString(), BuildFullFileName);
+            }
+        }
 
 		private string BuildFileLocation
 		{

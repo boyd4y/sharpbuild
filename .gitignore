@@ -6,3 +6,4 @@
 /SharpBuildLogger/obj
 /SharpBuildLogger/bin/Debug
 /SharpBuildLogger/bin/Release
+*.log

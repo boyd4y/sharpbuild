@@ -142,6 +142,7 @@
     <Compile Include="PkgCmdID.cs" />
     <Compile Include="SingletonUtility.cs" />
     <Compile Include="TaskProviders\SharpBuildTaskProvider.cs" />
+    <Compile Include="Utility\MSBuildProjectUtility.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">

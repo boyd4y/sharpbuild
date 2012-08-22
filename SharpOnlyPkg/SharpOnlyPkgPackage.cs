@@ -18,6 +18,7 @@ using BoydYang.SharpBuildPkg.BuildRunner;
 using BoydYang.SharpBuildPkg.ServiceProviders;
 using BoydYang.SharpBuildPkg.Util;
 using System.Collections.Generic;
+using BoydYang.SharpBuildPkg.Utility;
 
 namespace BoydYang.SharpBuildPkg
 {
@@ -213,12 +214,14 @@ namespace BoydYang.SharpBuildPkg
             deployService.UpdateSettings(GetFolders());
 
             Project activeProj = GetActiveProject();
+            Solution sln = GetSolution();
+
             if (activeProj != null)
             {
                 try
                 {
                     // build
-                    buildService.StartBuildProject(activeProj, GetMSBuildPath(), GetAutoDeploy(), GetDisableCA(), GetDisableOptimize());
+                    buildService.StartBuildProject(sln, activeProj, GetMSBuildPath(), GetAutoDeploy(), GetDisableCA(), GetDisableOptimize());
                 }
                 catch (Exception ee)
                 {
@@ -228,7 +231,6 @@ namespace BoydYang.SharpBuildPkg
             else
             {
                 // Solution build....
-                Solution sln = GetSolution();
                 if (sln.Projects.Count < 1)
                 {
                     buildwnd.OutputString(@"Empty solution, bypass!!");
