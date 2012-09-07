@@ -33,6 +33,7 @@ namespace BoydYang.SharpBuildPkg.Options
         [Category("General")]
         [Description("Deploy folders")]
         [TypeConverter(typeof(DeployFolderCollectionConverter))]
+        [Editor(typeof(DeployFolderCollectionEditor), typeof(System.Drawing.Design.UITypeEditor))]
         public DeployFolderCollection DeployFolders { get; set; }
 
         public OptionPageGrid()

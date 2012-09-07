@@ -19,7 +19,6 @@ using BoydYang.SharpBuildPkg.ServiceProviders;
 using BoydYang.SharpBuildLogger.Loggers;
 using BoydYang.SharpBuildLogger.Events;
 using BoydYang.SharpBuildLogger.Constant;
-using BoydYang.SharpBuildPkg.Utility;
 
 namespace BoydYang.SharpBuildPkg.BuildRunner
 {
@@ -225,7 +224,8 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
                     try
                     {
                         string fullname;
-                        Singleton<MSBuildProjectUtility>.Instance.GenerateNewProjectFile(this.Host, BuildProject, BuildSolution, out fullname);
+                        ISharpBuildService buildService = this.Host.GetService(typeof(SharpBuildService)) as ISharpBuildService;
+                        buildService.GenerateNewProjectFile(BuildProject, BuildSolution, out fullname);
                         _buildProjectShadowFile = System.IO.Path.GetFileName(fullname);
                     }
                     catch (Exception ee)
@@ -260,8 +260,18 @@ namespace BoydYang.SharpBuildPkg.BuildRunner
             StopPipeListen();
             _building = false;
 
-            if (BuildProject != null)
-                Singleton<MSBuildProjectUtility>.Instance.DeleteShadowProjectFile(BuildProject);
+            try
+            {
+                if (BuildProject != null)
+                {
+                    ISharpBuildService buildService = this.Host.GetService(typeof(SharpBuildService)) as ISharpBuildService;
+                    buildService.DeleteShadowProjectFile(BuildProject);
+                }
+            }
+            catch (Exception ee)
+            {
+                this.BuildWindow.OutputString(string.Format(@"Faield to delete shadow project file: {0}", ee.Message));
+            }
         }
 
 		private ProcessStartInfo GetProcessStartInfo()

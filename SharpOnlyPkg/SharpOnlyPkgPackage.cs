@@ -18,7 +18,6 @@ using BoydYang.SharpBuildPkg.BuildRunner;
 using BoydYang.SharpBuildPkg.ServiceProviders;
 using BoydYang.SharpBuildPkg.Util;
 using System.Collections.Generic;
-using BoydYang.SharpBuildPkg.Utility;
 
 namespace BoydYang.SharpBuildPkg
 {

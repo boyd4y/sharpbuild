@@ -48,6 +48,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\BuildUtil\build.cs">
+      <Link>Properties\build.cs</Link>
+    </Compile>
     <Compile Include="Constant\SharpBuildEventType.cs" />
     <Compile Include="Events\SharpBuildStartEvent.cs" />
     <Compile Include="Events\SharpBuildErrorEvent.cs" />

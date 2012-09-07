@@ -11,6 +11,8 @@ namespace BoydYang.SharpBuildPkg.Options
     /// By deriving from GlobalizedObject the displaying of property names are language aware.
     /// GlobalizedObject implements the interface ICustomTypeDescriptor. 
     /// </summary>
+    [Description("Deploy Folder")]
+    [TypeConverter(typeof(DeployFolderConverter))]
     public class DeployFolder
     {
         private string _path = string.Empty;

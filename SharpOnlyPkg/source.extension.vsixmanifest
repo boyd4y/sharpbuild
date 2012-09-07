@@ -3,7 +3,7 @@
   <Identifier Id="73ef989a-8690-4b93-8e3e-b68f31029ac5">
     <Name>Sharp Build Utility</Name>
     <Author>Yang</Author>
-    <Version>1.1</Version>
+    <Version>1.3</Version>
     <Description xml:space="preserve">Speed up c# compile, create new Project context menu to launch msbuild, without resolve project reference, disable CA</Description>
     <Locale>1033</Locale>
     <Icon>build.ico</Icon>

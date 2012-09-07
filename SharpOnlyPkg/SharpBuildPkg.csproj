@@ -117,15 +117,20 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\BuildUtil\build.cs">
+      <Link>Properties\build.cs</Link>
+    </Compile>
     <Compile Include="Builder\MSBuildRunner.cs" />
     <Compile Include="Guids.cs" />
+    <Compile Include="Options\DeployFolderCollectionConverter.cs" />
     <Compile Include="Options\DeployFolder.cs" />
     <Compile Include="Options\DeployFolderCollection.cs" />
+    <Compile Include="Options\DeployFolderCollectionEditor.cs" />
     <Compile Include="Options\DeployFolderCollectionPropertyDescriptor.cs" />
     <Compile Include="Options\OptionsPageGrid.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Options\TypeConverter.cs" />
+    <Compile Include="Options\DeployFolderConverter.cs" />
     <Compile Include="Packages\ProjectPackageBase.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -142,7 +147,6 @@
     <Compile Include="PkgCmdID.cs" />
     <Compile Include="SingletonUtility.cs" />
     <Compile Include="TaskProviders\SharpBuildTaskProvider.cs" />
-    <Compile Include="Utility\MSBuildProjectUtility.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
